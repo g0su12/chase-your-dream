@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct chase_your_dreamApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .modelContainer(PersistenceController.shared)
         }
     }
 }

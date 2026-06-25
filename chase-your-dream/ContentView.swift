@@ -8,14 +8,80 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.colorScheme) private var systemColorScheme
+
+    private let dailyService: DailyContentServicing
+    @AppStorage(AppStorageKeys.hasCompletedOnboarding) private var hasCompletedOnboarding = false
+    @AppStorage(AppStorageKeys.selectedLanguage) private var selectedLanguageRaw: String = AppLanguage.vi.rawValue
+    @AppStorage(AppStorageKeys.selectedAppearance) private var selectedAppearanceRaw: String = AppAppearanceMode.system.rawValue
+
+    init(dailyService: DailyContentServicing = MockDailyContentService()) {
+        self.dailyService = dailyService
+    }
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Group {
+            if hasCompletedOnboarding {
+                mainTabView
+                    .transition(.opacity)
+            } else {
+                OnboardingView(language: selectedLanguage) {
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        hasCompletedOnboarding = true
+                    }
+                }
+                .transition(.opacity)
+            }
         }
-        .padding()
+        .fontDesign(.rounded)
+        .tint(HealingTheme.primaryAccent(for: resolvedColorScheme))
+        .preferredColorScheme(selectedAppearance.colorScheme)
+        .animation(.easeInOut(duration: 0.35), value: hasCompletedOnboarding)
+    }
+
+    private var mainTabView: some View {
+        TabView {
+            TodayView(service: dailyService)
+                .tabItem {
+                    Label(localized(vi: "Hôm nay", en: "Today"), systemImage: "sun.max")
+                }
+
+            ProgressHistoryView()
+                .tabItem {
+                    Label(localized(vi: "Tiến trình", en: "Progress"), systemImage: "chart.line.uptrend.xyaxis")
+                }
+
+            FavoritesListView()
+                .tabItem {
+                    Label(localized(vi: "Yêu thích", en: "Favorites"), systemImage: "star")
+                }
+
+            JournalTimelineView()
+                .tabItem {
+                    Label(localized(vi: "Nhật ký", en: "Journal"), systemImage: "book")
+                }
+
+            SettingsScreenView()
+                .tabItem {
+                    Label(localized(vi: "Cài đặt", en: "Settings"), systemImage: "gearshape")
+                }
+        }
+    }
+
+    private var selectedLanguage: AppLanguage {
+        AppLanguage(rawValue: selectedLanguageRaw) ?? .vi
+    }
+
+    private var selectedAppearance: AppAppearanceMode {
+        AppAppearanceMode(rawValue: selectedAppearanceRaw) ?? .system
+    }
+
+    private var resolvedColorScheme: ColorScheme {
+        selectedAppearance.colorScheme ?? systemColorScheme
+    }
+
+    private func localized(vi: String, en: String) -> String {
+        selectedLanguage == .vi ? vi : en
     }
 }
 
