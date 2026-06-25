@@ -6,6 +6,7 @@ struct SettingsScreenView: View {
     @AppStorage(AppStorageKeys.hasCompletedOnboarding) private var hasCompletedOnboarding = false
     @AppStorage(AppStorageKeys.selectedLanguage) private var selectedLanguageRaw: String = AppLanguage.vi.rawValue
     @AppStorage(AppStorageKeys.selectedAppearance) private var selectedAppearanceRaw: String = AppAppearanceMode.system.rawValue
+    @AppStorage(AppStorageKeys.selectedGoalsCSV) private var selectedGoalsCSV: String = PersonalGrowthGoal.defaultSelectionCSV
     @AppStorage(AppStorageKeys.reminderTimesCSV) private var reminderTimesCSV: String = "08:00,20:00"
     @AppStorage(AppStorageKeys.simulateNetworkFailure) private var simulateNetworkFailure = false
 
@@ -37,6 +38,32 @@ struct SettingsScreenView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                }
+
+                Section(localized(vi: "Mục tiêu cá nhân", en: "Personal goals")) {
+                    Text(
+                        localized(
+                            vi: "Các mục tiêu này sẽ điều chỉnh câu hỏi tự vấn, hành động nhỏ và thông điệp động viên hằng ngày.",
+                            en: "These goals tune your daily reflection prompt, micro actions, and motivation message."
+                        )
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                    ForEach(PersonalGrowthGoal.allCases) { goal in
+                        Toggle(isOn: bindingForGoal(goal)) {
+                            Label {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(goal.title(language: selectedLanguage))
+                                    Text(goal.detail(language: selectedLanguage))
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                }
+                            } icon: {
+                                Image(systemName: goal.systemImage)
+                            }
+                        }
+                    }
                 }
 
                 Section(localized(vi: "Nhắc nhở mỗi ngày", en: "Daily reminders")) {
@@ -108,6 +135,30 @@ struct SettingsScreenView: View {
                 reminderTimes = ReminderTimeCodec.decode(csv: reminderTimesCSV)
             }
         }
+    }
+
+    private func bindingForGoal(_ goal: PersonalGrowthGoal) -> Binding<Bool> {
+        Binding(
+            get: {
+                PersonalGrowthGoal.decode(csv: selectedGoalsCSV).contains(goal)
+            },
+            set: { isSelected in
+                var goals = PersonalGrowthGoal.decode(csv: selectedGoalsCSV)
+
+                if isSelected {
+                    if !goals.contains(goal) {
+                        goals.append(goal)
+                    }
+                } else {
+                    goals.removeAll { $0 == goal }
+                    if goals.isEmpty {
+                        goals = [goal]
+                    }
+                }
+
+                selectedGoalsCSV = PersonalGrowthGoal.encode(goals)
+            }
+        )
     }
 
     private func bindingForReminder(at index: Int) -> Binding<Date> {

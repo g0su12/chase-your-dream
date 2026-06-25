@@ -18,8 +18,9 @@ Người dùng mục tiêu là những người đang cần một điểm tựa 
 ## Tính Năng Hiện Tại
 
 - Onboarding song ngữ Việt/Anh, có lưu trạng thái cảm xúc ban đầu bằng `AppStorage`.
-- Màn hình Today với gói nội dung theo ngày, chọn ngày, pull-to-refresh và cache fallback.
+- Màn hình Today theo hướng healing sanctuary với gói nội dung theo ngày, chọn ngày, pull-to-refresh và cache fallback.
 - Micro actions mỗi ngày, slider tiến độ, chọn mood 1-5 và short journal.
+- Cá nhân hóa local theo mục tiêu cá nhân và mức năng lượng hôm nay.
 - Engine phản hồi động viên dựa trên `completionPercent` và `moodLevel`.
 - Engine gợi ý ngày mai kèm safety note, tránh định vị app như tư vấn y tế/tâm lý.
 - Lưu check-in, favorite và mood journal bằng SwiftData.
@@ -27,6 +28,7 @@ Người dùng mục tiêu là những người đang cần một điểm tựa 
 - Màn hình Favorites cho quote/story, có normalized ID để tránh trùng khi đổi ngôn ngữ.
 - Màn hình Journal timeline cho các ghi chú cảm xúc.
 - Settings cho ngôn ngữ, giao diện system/dark/light, lịch nhắc hằng ngày và debug offline cache.
+- Settings cho mục tiêu cá nhân: sức khỏe, học tập, công việc, tinh thần, kỷ luật.
 - Local notification scheduler cho các khung giờ nhắc nhở mỗi ngày.
 - Healing theme riêng với màu nền, card style và các minh họa nhỏ bằng SwiftUI.
 
@@ -65,6 +67,7 @@ chase-your-dream/
 
 `AppModels.swift` gom các enum cấu hình app, model nội dung hằng ngày và các SwiftData model:
 
+- `PersonalGrowthGoal`, `DailyEnergyLevel`, `DailyPersonalization`: profile local dùng để cá nhân hóa prompt/action/feedback.
 - `DailyCheckinRecord`: check-in theo ngày, action đã hoàn thành, phần trăm, mood và note.
 - `FavoriteRecord`: quote/story yêu thích.
 - `MoodJournalEntry`: prompt, note và mood cho timeline nhật ký.
@@ -75,8 +78,8 @@ chase-your-dream/
 
 - `DailyContentServicing`: protocol để tách nguồn dữ liệu hằng ngày khỏi UI.
 - `MockDailyContentService`: tạo nội dung local theo ngày/ngôn ngữ, có cache UserDefaults và chế độ giả lập mất mạng.
-- `MotivationEngine`: sinh thông điệp động viên sau khi save check-in.
-- `NextStepEngine`: sinh gợi ý cho ngày mai và safety note.
+- `MotivationEngine`: sinh thông điệp động viên sau khi save check-in, có xét mục tiêu và năng lượng.
+- `NextStepEngine`: sinh gợi ý cho ngày mai và safety note, có xét mục tiêu và năng lượng.
 - `NotificationScheduler`: xin quyền và lên lịch local notification.
 
 ### Lớp UI
@@ -107,11 +110,11 @@ Hiện tại daily package được sinh từ mảng local trong `MockDailyConte
 
 ### 2. Cá Nhân Hóa Onboarding Và Gợi Ý
 
-Trạng thái cảm xúc ban đầu đã được lưu, nhưng chưa ảnh hưởng sâu vào nội dung. Nên tiếp tục:
+Mục tiêu cá nhân và năng lượng hôm nay đã ảnh hưởng tới prompt/action/feedback ở local. Nên tiếp tục:
 
 - Dùng `onboardingEmotion` để chọn tone nội dung ban đầu.
-- Thêm mục tiêu cá nhân: sức khỏe, học tập, công việc, tinh thần, kỷ luật.
-- Tạo micro action theo mức năng lượng hiện tại.
+- Lưu năng lượng theo từng ngày nếu cần phân tích lịch sử.
+- Tạo micro action dựa trên mood history thay vì chỉ dựa trên lựa chọn hiện tại.
 - Giảm gợi ý khi mood thấp, tăng challenge khi người dùng duy trì tốt.
 
 ### 3. Nâng Cấp Tiến Trình Và Streak

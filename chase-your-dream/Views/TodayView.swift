@@ -6,6 +6,8 @@ struct TodayView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     @AppStorage(AppStorageKeys.selectedLanguage) private var selectedLanguageRaw: String = AppLanguage.vi.rawValue
+    @AppStorage(AppStorageKeys.selectedGoalsCSV) private var selectedGoalsCSV: String = PersonalGrowthGoal.defaultSelectionCSV
+    @AppStorage(AppStorageKeys.dailyEnergyLevel) private var dailyEnergyLevelRaw: String = DailyEnergyLevel.steady.rawValue
     @Query(sort: \FavoriteRecord.createdAt, order: .reverse) private var favorites: [FavoriteRecord]
 
     @StateObject private var viewModel: TodayViewModel
@@ -18,8 +20,19 @@ struct TodayView: View {
         AppLanguage(rawValue: selectedLanguageRaw) ?? .vi
     }
 
+    private var personalization: DailyPersonalization {
+        DailyPersonalization.fromStorage(
+            goalsCSV: selectedGoalsCSV,
+            energyLevelRaw: dailyEnergyLevelRaw
+        )
+    }
+
+    private var dailyEnergyLevel: DailyEnergyLevel {
+        DailyEnergyLevel(rawValue: dailyEnergyLevelRaw) ?? .steady
+    }
+
     private var taskID: String {
-        "\(DayKeyFormatter.key(for: viewModel.selectedDate))_\(selectedLanguage.rawValue)"
+        "\(DayKeyFormatter.key(for: viewModel.selectedDate))_\(selectedLanguage.rawValue)_\(personalization.cacheKey)"
     }
 
     var body: some View {
@@ -29,41 +42,29 @@ struct TodayView: View {
                     .ignoresSafeArea()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        datePickerSection
-                            .healingCard(colorScheme: colorScheme)
-
-                        if let previousSummary = viewModel.previousSummary {
-                            previousSummarySection(summary: previousSummary)
-                                .healingCard(colorScheme: colorScheme, tint: HealingTheme.panelBackground(for: colorScheme))
-                        }
-
+                    VStack(alignment: .leading, spacing: 20) {
                         if viewModel.isLoading {
                             loadingSection
                                 .healingCard(colorScheme: colorScheme)
-                                .transition(.opacity)
+                                .padding(.top, 8)
                         } else if let package = viewModel.dailyPackage {
+                            sanctuaryHeader(package: package)
+
+                            if let previousSummary = viewModel.previousSummary {
+                                previousSummarySection(summary: previousSummary)
+                            }
+
                             quoteSection(package: package)
-                                .healingCard(colorScheme: colorScheme, tint: HealingTheme.quoteTint(for: colorScheme))
-                                .transition(.opacity)
-
-                            storySection(package: package)
-                                .healingCard(colorScheme: colorScheme, tint: HealingTheme.storyTint(for: colorScheme))
-
-                            reflectionSection(prompt: package.reflectionPrompt)
-                                .healingCard(colorScheme: colorScheme)
 
                             actionsSection(actions: package.microActions)
+
+                            checkInSection
                                 .healingCard(colorScheme: colorScheme)
 
-                            completionSection
+                            reflectionJournalSection(prompt: package.reflectionPrompt)
                                 .healingCard(colorScheme: colorScheme)
 
-                            moodSection
-                                .healingCard(colorScheme: colorScheme)
-
-                            journalSection
-                                .healingCard(colorScheme: colorScheme)
+                            storySection(package: package)
 
                             saveSection
 
@@ -83,7 +84,7 @@ struct TodayView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .healingCard(colorScheme: colorScheme)
-                                .transition(.opacity)
+                                .padding(.top, 8)
                         }
 
                         if let errorMessage = viewModel.errorMessage {
@@ -94,27 +95,56 @@ struct TodayView: View {
                         }
                     }
                     .padding(.horizontal)
-                    .padding(.vertical, 8)
+                    .padding(.top, 8)
+                    .padding(.bottom, 22)
                 }
                 .scrollIndicators(.hidden)
             }
             .navigationTitle(localized(vi: "Hôm nay", en: "Today"))
+            .navigationBarTitleDisplayMode(.inline)
             .tint(HealingTheme.primaryAccent(for: colorScheme))
             .task(id: taskID) {
-                await viewModel.load(language: selectedLanguage, modelContext: modelContext)
+                await viewModel.load(
+                    language: selectedLanguage,
+                    personalization: personalization,
+                    modelContext: modelContext
+                )
             }
             .refreshable {
-                await viewModel.load(language: selectedLanguage, modelContext: modelContext)
+                await viewModel.load(
+                    language: selectedLanguage,
+                    personalization: personalization,
+                    modelContext: modelContext
+                )
             }
             .animation(.easeInOut(duration: 0.25), value: viewModel.isLoading)
             .animation(.easeInOut(duration: 0.25), value: viewModel.dailyPackage?.id)
         }
     }
 
-    private var datePickerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(localized(vi: "Ngày mục tiêu", en: "Focus day"))
-                .font(.headline)
+    private func sanctuaryHeader(package: DailyPackage) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(greetingTitle)
+                        .font(.system(size: 31, weight: .semibold, design: .rounded))
+                        .lineSpacing(3)
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(greetingSubtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 8)
+
+                SunDoodleIllustration()
+                    .scaleEffect(0.9)
+                    .opacity(colorScheme == .dark ? 0.46 : 0.72)
+                    .accessibilityHidden(true)
+            }
 
             DatePicker(
                 "",
@@ -123,45 +153,125 @@ struct TodayView: View {
             )
             .labelsHidden()
             .datePickerStyle(.compact)
+
+            focusPills
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(headerFill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .stroke(HealingTheme.cardStroke(for: colorScheme), lineWidth: 1)
+                )
+        )
+        .overlay(alignment: .bottomTrailing) {
+            WaveDoodleIllustration()
+                .scaleEffect(1.25)
+                .opacity(colorScheme == .dark ? 0.20 : 0.36)
+                .offset(x: 16, y: 6)
+                .accessibilityHidden(true)
+        }
+        .shadow(
+            color: colorScheme == .dark
+                ? Color.black.opacity(0.28)
+                : Color(red: 0.50, green: 0.56, blue: 0.48).opacity(0.16),
+            radius: 14,
+            x: 0,
+            y: 8
+        )
     }
 
-    private func previousSummarySection(summary: PreviousCheckinSummary) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(localized(vi: "Tổng kết hôm qua", en: "Yesterday summary"))
-                .font(.headline)
-
-            Text("\(summary.dateKey) - \(summary.completionPercent)%")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Text(summary.feedback)
-                .font(.subheadline)
+    private var focusPills: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(personalization.goals) { goal in
+                    Label {
+                        Text(goal.title(language: selectedLanguage))
+                            .font(.caption.weight(.medium))
+                    } icon: {
+                        Image(systemName: goal.systemImage)
+                            .font(.caption.weight(.semibold))
+                    }
+                    .foregroundStyle(HealingTheme.primaryAccent(for: colorScheme))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(HealingTheme.panelBackground(for: colorScheme))
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(HealingTheme.cardStroke(for: colorScheme), lineWidth: 0.8)
+                            )
+                    )
+                }
+            }
+            .padding(.vertical, 1)
         }
+        .scrollIndicators(.hidden)
     }
 
     private var loadingSection: some View {
         HStack(spacing: 12) {
             ProgressView()
-            Text(localized(vi: "Đang tải nội dung hôm nay...", en: "Loading daily package..."))
+            Text(localized(vi: "Đang chuẩn bị một nhịp nhẹ cho hôm nay...", en: "Preparing a gentle rhythm for today..."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private func previousSummarySection(summary: PreviousCheckinSummary) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.title3)
+                .foregroundStyle(HealingTheme.primaryAccent(for: colorScheme))
+                .frame(width: 32, height: 32)
+                .background(
+                    Circle()
+                        .fill(HealingTheme.panelBackground(for: colorScheme))
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(localized(vi: "Hôm qua bạn đã quay lại", en: "You came back yesterday"))
+                    .font(.headline)
+
+                Text("\(summary.dateKey) - \(summary.completionPercent)%")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text(summary.feedback)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(HealingTheme.panelBackground(for: colorScheme))
+        )
+    }
+
     private func quoteSection(package: DailyPackage) -> some View {
         let favoriteID = "quote-\(package.dateKey)"
         let quoteToShare = "\(package.quote.text) - \(package.quote.author)"
 
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(localized(vi: "Trích dẫn", en: "Quote"))
-                    .font(.headline)
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center) {
+                sectionLabel(
+                    title: localized(vi: "Khoảnh khắc để thở", en: "A Moment To Breathe"),
+                    systemImage: "quote.opening"
+                )
+
                 Spacer()
+
                 ShareLink(item: quoteToShare) {
                     Image(systemName: "square.and.arrow.up")
+                        .frame(width: 36, height: 36)
                 }
+
                 Button {
                     toggleFavorite(
                         id: favoriteID,
@@ -171,32 +281,270 @@ struct TodayView: View {
                     )
                 } label: {
                     Image(systemName: isFavorite(id: favoriteID) ? "star.fill" : "star")
+                        .frame(width: 36, height: 36)
                 }
             }
 
             Text("\"\(package.quote.text)\"")
-                .font(.title3)
+                .font(.system(size: 25, weight: .medium, design: .serif))
+                .lineSpacing(5)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(package.quote.author)
-                .font(.footnote)
+                .font(.footnote.weight(.medium))
                 .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(HealingTheme.quoteTint(for: colorScheme))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(HealingTheme.cardStroke(for: colorScheme), lineWidth: 0.9)
+                )
+        )
         .overlay(alignment: .topTrailing) {
-            SunDoodleIllustration()
-                .scaleEffect(0.72)
-                .opacity(colorScheme == .dark ? 0.30 : 0.46)
-                .offset(x: 12, y: -8)
+            LeafCornerIllustration()
+                .scaleEffect(1.18)
+                .opacity(colorScheme == .dark ? 0.28 : 0.52)
+                .offset(x: 4, y: 8)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func actionsSection(actions: [MicroAction]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                sectionLabel(
+                    title: localized(vi: "Ba bước nhỏ hôm nay", en: "Three Tiny Steps"),
+                    systemImage: "figure.walk"
+                )
+
+                Text(localized(vi: "Chỉ cần chọn bước vừa sức nhất trước.", en: "Start with the step that feels most possible."))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(spacing: 10) {
+                ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
+                    microActionRow(action: action, index: index)
+                }
+            }
+        }
+    }
+
+    private func microActionRow(action: MicroAction, index: Int) -> some View {
+        let isCompleted = viewModel.completedActionIDs.contains(action.id)
+
+        return Button {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.86)) {
+                viewModel.toggleAction(action.id)
+            }
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(isCompleted ? HealingTheme.primaryAccent(for: colorScheme) : HealingTheme.panelBackground(for: colorScheme))
+
+                    if isCompleted {
+                        Image(systemName: "checkmark")
+                            .font(.caption.weight(.bold))
+                    } else {
+                        Text("\(index + 1)")
+                            .font(.caption.weight(.bold))
+                    }
+                }
+                .foregroundStyle(isCompleted ? Color.white : HealingTheme.primaryAccent(for: colorScheme))
+                .frame(width: 34, height: 34)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(action.title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+
+                    Text(action.detail)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Label("\(action.recommendedMinutes)m", systemImage: "timer")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(isCompleted ? HealingTheme.successTint(for: colorScheme) : HealingTheme.cardBackground(for: colorScheme))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .stroke(
+                                isCompleted
+                                    ? HealingTheme.primaryAccent(for: colorScheme).opacity(0.32)
+                                    : HealingTheme.cardStroke(for: colorScheme),
+                                lineWidth: 1
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var checkInSection: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            sectionLabel(
+                title: localized(vi: "Check-in nhẹ", en: "Gentle Check-in"),
+                systemImage: "heart.text.square"
+            )
+
+            energySelector
+
+            VStack(alignment: .leading, spacing: 9) {
+                HStack {
+                    Text(localized(vi: "Tâm trạng", en: "Mood"))
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Text(moodCaption)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+
+                MoodSliderSelector(moodLevel: $viewModel.moodLevel)
+                    .frame(height: 48)
+            }
+
+            completionControl
+        }
+    }
+
+    private var energySelector: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack {
+                Text(localized(vi: "Năng lượng", en: "Energy"))
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text(dailyEnergyLevel.detail(language: selectedLanguage))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            HStack(spacing: 8) {
+                ForEach(DailyEnergyLevel.allCases) { energyLevel in
+                    Button {
+                        withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
+                            dailyEnergyLevelRaw = energyLevel.rawValue
+                        }
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: energyIcon(for: energyLevel))
+                                .font(.headline)
+
+                            Text(energyLevel.title(language: selectedLanguage))
+                                .font(.caption.weight(.semibold))
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 70)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(
+                                    energyLevel == dailyEnergyLevel
+                                        ? HealingTheme.suggestionTint(for: colorScheme)
+                                        : HealingTheme.panelBackground(for: colorScheme)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .stroke(
+                                            energyLevel == dailyEnergyLevel
+                                                ? HealingTheme.primaryAccent(for: colorScheme).opacity(0.45)
+                                                : HealingTheme.cardStroke(for: colorScheme),
+                                            lineWidth: 1
+                                        )
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(energyLevel == dailyEnergyLevel ? HealingTheme.primaryAccent(for: colorScheme) : .secondary)
+                }
+            }
+        }
+    }
+
+    private var completionControl: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(localized(vi: "Tiến độ hôm nay", en: "Today's Progress"))
+                    .font(.subheadline.weight(.semibold))
+
+                Spacer()
+
+                Text("\(Int(viewModel.completionPercent))%")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(HealingTheme.primaryAccent(for: colorScheme))
+            }
+
+            ProgressView(value: viewModel.completionPercent, total: 100)
+                .tint(HealingTheme.primaryAccent(for: colorScheme))
+
+            Slider(value: $viewModel.completionPercent, in: 0...100, step: 1)
+        }
+    }
+
+    private func reflectionJournalSection(prompt: String) -> some View {
+        VStack(alignment: .leading, spacing: 13) {
+            sectionLabel(
+                title: localized(vi: "Một dòng cho mình", en: "One Line For Yourself"),
+                systemImage: "square.and.pencil"
+            )
+
+            Text(prompt)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ZStack(alignment: .topLeading) {
+                if viewModel.journalNote.isEmpty {
+                    Text(localized(vi: "Viết nhẹ vài chữ cũng được...", en: "A few gentle words are enough..."))
+                        .font(.subheadline)
+                        .foregroundStyle(Color.secondary.opacity(0.72))
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 17)
+                }
+
+                TextEditor(text: $viewModel.journalNote)
+                    .frame(minHeight: 118)
+                    .padding(8)
+                    .scrollContentBackground(.hidden)
+                    .background(Color.clear)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(HealingTheme.panelBackground(for: colorScheme))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(HealingTheme.cardStroke(for: colorScheme), lineWidth: 0.8)
+                    )
+            )
         }
     }
 
     private func storySection(package: DailyPackage) -> some View {
         let favoriteID = "story-\(package.dateKey)"
 
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 11) {
             HStack {
-                Text(localized(vi: "Câu chuyện ngắn", en: "Short story"))
-                    .font(.headline)
+                sectionLabel(
+                    title: localized(vi: "Câu chuyện dịu nhẹ", en: "A Gentle Story"),
+                    systemImage: "book.closed"
+                )
+
                 Spacer()
+
                 Button {
                     toggleFavorite(
                         id: favoriteID,
@@ -206,141 +554,69 @@ struct TodayView: View {
                     )
                 } label: {
                     Image(systemName: isFavorite(id: favoriteID) ? "star.fill" : "star")
+                        .frame(width: 36, height: 36)
                 }
             }
 
             Text(package.story.title)
-                .font(.subheadline)
-                .fontWeight(.semibold)
+                .font(.headline)
 
             Text(package.story.body)
                 .font(.subheadline)
-        }
-        .overlay(alignment: .bottomTrailing) {
-            WaveDoodleIllustration()
-                .opacity(colorScheme == .dark ? 0.34 : 0.55)
-                .offset(x: 10, y: 8)
-        }
-    }
-
-    private func reflectionSection(prompt: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(localized(vi: "Tự vấn", en: "Reflection"))
-                .font(.headline)
-
-            Text(prompt)
-                .font(.subheadline)
-        }
-        .overlay(alignment: .bottomTrailing) {
-            LeafCornerIllustration()
-                .opacity(colorScheme == .dark ? 0.42 : 0.62)
-                .offset(x: 4, y: 6)
-        }
-    }
-
-    private func actionsSection(actions: [MicroAction]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(localized(vi: "Hành động nhỏ", en: "Micro actions"))
-                .font(.headline)
-
-            ForEach(actions) { action in
-                Button {
-                    viewModel.toggleAction(action.id)
-                } label: {
-                    HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: viewModel.completedActionIDs.contains(action.id) ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(viewModel.completedActionIDs.contains(action.id) ? .green : .secondary)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(action.title)
-                                .foregroundStyle(.primary)
-                            Text("\(action.detail) (\(action.recommendedMinutes)m)")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private var completionSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(localized(vi: "Tiến độ", en: "Completion"))
-                    .font(.headline)
-                Spacer()
-                Text("\(Int(viewModel.completionPercent))%")
-                    .font(.headline)
-            }
-
-            Slider(value: $viewModel.completionPercent, in: 0...100, step: 1)
-        }
-    }
-
-    private var moodSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(localized(vi: "Tâm trạng", en: "Mood"))
-                .font(.headline)
-
-            MoodSliderSelector(moodLevel: $viewModel.moodLevel)
-
-            Text(localized(vi: "Kéo hoặc chạm để chọn mức cảm xúc", en: "Slide or tap to pick your mood"))
-                .font(.footnote)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private var journalSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(localized(vi: "Nhật ký ngắn", en: "Short journal"))
-                .font(.headline)
-
-            TextEditor(text: $viewModel.journalNote)
-                .frame(minHeight: 110)
-                .padding(8)
-                .scrollContentBackground(.hidden)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(HealingTheme.panelBackground(for: colorScheme))
-                        .overlay(.ultraThinMaterial.opacity(colorScheme == .dark ? 0.28 : 0.16))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(HealingTheme.cardStroke(for: colorScheme), lineWidth: 0.8)
-                        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(HealingTheme.storyTint(for: colorScheme))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(HealingTheme.cardStroke(for: colorScheme), lineWidth: 0.9)
                 )
-        }
+        )
     }
 
     private var saveSection: some View {
         Button {
-            viewModel.saveCheckin(language: selectedLanguage, modelContext: modelContext)
+            viewModel.saveCheckin(
+                language: selectedLanguage,
+                personalization: personalization,
+                modelContext: modelContext
+            )
         } label: {
-            Text(localized(vi: "Lưu check-in", en: "Save check-in"))
+            Label(localized(vi: "Lưu nhịp hôm nay", en: "Save Today's Rhythm"), systemImage: "checkmark.seal")
+                .font(.headline)
                 .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
         }
         .buttonStyle(.borderedProminent)
+        .controlSize(.large)
         .tint(HealingTheme.primaryAccent(for: colorScheme))
     }
 
     private func feedbackSection(feedback: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(localized(vi: "Thông điệp động lực", en: "Motivation message"))
-                .font(.headline)
+            sectionLabel(
+                title: localized(vi: "Lời nhắn cho bạn", en: "A Note For You"),
+                systemImage: "sparkles"
+            )
             Text(feedback)
                 .font(.subheadline)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private func tomorrowSuggestionSection(suggestion: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(localized(vi: "Gợi ý cho ngày mai", en: "Tomorrow suggestion"))
-                .font(.headline)
+            sectionLabel(
+                title: localized(vi: "Ngày mai đi tiếp", en: "Tomorrow's Next Step"),
+                systemImage: "sunrise"
+            )
             Text(suggestion)
                 .font(.subheadline)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -348,6 +624,112 @@ struct TodayView: View {
         Text(NextStepEngine.safetyNote(language: selectedLanguage))
             .font(.footnote)
             .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 4)
+    }
+
+    private func sectionLabel(title: String, systemImage: String) -> some View {
+        Label {
+            Text(title)
+                .font(.headline)
+        } icon: {
+            Image(systemName: systemImage)
+                .foregroundStyle(HealingTheme.primaryAccent(for: colorScheme))
+        }
+    }
+
+    private var headerFill: LinearGradient {
+        switch colorScheme {
+        case .dark:
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.13, green: 0.25, blue: 0.26).opacity(0.94),
+                    Color(red: 0.11, green: 0.19, blue: 0.22).opacity(0.98)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        default:
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.99, green: 0.92, blue: 0.84).opacity(0.94),
+                    Color(red: 0.88, green: 0.95, blue: 0.91).opacity(0.94),
+                    Color(red: 0.84, green: 0.93, blue: 0.97).opacity(0.88)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+
+    private var greetingTitle: String {
+        switch (dailyEnergyLevel, selectedLanguage) {
+        case (.low, .vi):
+            return "Hôm nay cứ đi chậm thôi."
+        case (.steady, .vi):
+            return "Mình giữ một nhịp vừa đủ."
+        case (.high, .vi):
+            return "Năng lượng đang mở ra."
+        case (.low, .en):
+            return "Go slowly today."
+        case (.steady, .en):
+            return "Keep a steady rhythm."
+        case (.high, .en):
+            return "Your energy is opening up."
+        }
+    }
+
+    private var greetingSubtitle: String {
+        switch (dailyEnergyLevel, selectedLanguage) {
+        case (.low, .vi):
+            return "Một bước nhỏ vẫn là một cách bạn ở lại với chính mình."
+        case (.steady, .vi):
+            return "Chọn điều vừa sức, làm gọn, rồi để ngày trôi nhẹ hơn."
+        case (.high, .vi):
+            return "Thử tiến thêm một chút, nhưng vẫn giữ điểm dừng tử tế."
+        case (.low, .en):
+            return "One tiny step is still a way of staying with yourself."
+        case (.steady, .en):
+            return "Choose what feels possible, finish gently, and let the day breathe."
+        case (.high, .en):
+            return "Move a little further while keeping a kind stopping point."
+        }
+    }
+
+    private var moodCaption: String {
+        switch (viewModel.moodLevel, selectedLanguage) {
+        case (1, .vi):
+            return "Cần ôm nhẹ"
+        case (2, .vi):
+            return "Hơi nặng"
+        case (3, .vi):
+            return "Ở giữa"
+        case (4, .vi):
+            return "Dễ thở"
+        case (5, .vi):
+            return "Sáng lên"
+        case (1, .en):
+            return "Needs care"
+        case (2, .en):
+            return "A little heavy"
+        case (3, .en):
+            return "In between"
+        case (4, .en):
+            return "Breathing easier"
+        default:
+            return selectedLanguage == .vi ? "Sáng lên" : "Bright"
+        }
+    }
+
+    private func energyIcon(for energyLevel: DailyEnergyLevel) -> String {
+        switch energyLevel {
+        case .low:
+            return "moon"
+        case .steady:
+            return "leaf"
+        case .high:
+            return "sun.max"
+        }
     }
 
     private func localized(vi: String, en: String) -> String {

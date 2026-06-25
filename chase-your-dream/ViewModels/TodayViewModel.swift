@@ -28,15 +28,32 @@ final class TodayViewModel: ObservableObject {
         self.service = service
     }
 
-    func load(language: AppLanguage, modelContext: ModelContext) async {
+    func load(
+        language: AppLanguage,
+        personalization: DailyPersonalization,
+        modelContext: ModelContext
+    ) async {
         isLoading = true
         errorMessage = nil
 
         do {
-            let package = try await service.fetchDailyPackage(for: selectedDate, language: language)
+            let package = try await service.fetchDailyPackage(
+                for: selectedDate,
+                language: language,
+                personalization: personalization
+            )
             dailyPackage = package
-            hydrateFromCurrentCheckin(dateKey: package.dateKey, modelContext: modelContext)
-            loadPreviousSummary(baseDate: selectedDate, language: language, modelContext: modelContext)
+            hydrateFromCurrentCheckin(
+                dateKey: package.dateKey,
+                personalization: personalization,
+                modelContext: modelContext
+            )
+            loadPreviousSummary(
+                baseDate: selectedDate,
+                language: language,
+                personalization: personalization,
+                modelContext: modelContext
+            )
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -52,7 +69,11 @@ final class TodayViewModel: ObservableObject {
         }
     }
 
-    func saveCheckin(language: AppLanguage, modelContext: ModelContext) {
+    func saveCheckin(
+        language: AppLanguage,
+        personalization: DailyPersonalization,
+        modelContext: ModelContext
+    ) {
         guard let package = dailyPackage else { return }
 
         do {
@@ -73,22 +94,35 @@ final class TodayViewModel: ObservableObject {
             latestFeedback = MotivationEngine.feedback(
                 completionPercent: Int(completionPercent),
                 moodLevel: moodLevel,
-                language: language
+                language: language,
+                energyLevel: personalization.energyLevel,
+                primaryGoal: personalization.primaryGoal
             )
 
             tomorrowSuggestion = NextStepEngine.tomorrowSuggestion(
                 completionPercent: Int(completionPercent),
                 moodLevel: moodLevel,
-                language: language
+                language: language,
+                energyLevel: personalization.energyLevel,
+                primaryGoal: personalization.primaryGoal
             )
 
-            loadPreviousSummary(baseDate: selectedDate, language: language, modelContext: modelContext)
+            loadPreviousSummary(
+                baseDate: selectedDate,
+                language: language,
+                personalization: personalization,
+                modelContext: modelContext
+            )
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    private func hydrateFromCurrentCheckin(dateKey: String, modelContext: ModelContext) {
+    private func hydrateFromCurrentCheckin(
+        dateKey: String,
+        personalization: DailyPersonalization,
+        modelContext: ModelContext
+    ) {
         do {
             let descriptor = FetchDescriptor<DailyCheckinRecord>(
                 predicate: #Predicate { $0.dateKey == dateKey }
@@ -102,12 +136,16 @@ final class TodayViewModel: ObservableObject {
                 latestFeedback = MotivationEngine.feedback(
                     completionPercent: record.completionPercent,
                     moodLevel: record.moodLevel,
-                    language: dailyPackage?.locale ?? .vi
+                    language: dailyPackage?.locale ?? .vi,
+                    energyLevel: personalization.energyLevel,
+                    primaryGoal: personalization.primaryGoal
                 )
                 tomorrowSuggestion = NextStepEngine.tomorrowSuggestion(
                     completionPercent: record.completionPercent,
                     moodLevel: record.moodLevel,
-                    language: dailyPackage?.locale ?? .vi
+                    language: dailyPackage?.locale ?? .vi,
+                    energyLevel: personalization.energyLevel,
+                    primaryGoal: personalization.primaryGoal
                 )
             } else {
                 completedActionIDs = []
@@ -122,7 +160,12 @@ final class TodayViewModel: ObservableObject {
         }
     }
 
-    private func loadPreviousSummary(baseDate: Date, language: AppLanguage, modelContext: ModelContext) {
+    private func loadPreviousSummary(
+        baseDate: Date,
+        language: AppLanguage,
+        personalization: DailyPersonalization,
+        modelContext: ModelContext
+    ) {
         guard let previousDate = Calendar.current.date(byAdding: .day, value: -1, to: baseDate) else {
             previousSummary = nil
             return
@@ -146,7 +189,9 @@ final class TodayViewModel: ObservableObject {
                 feedback: MotivationEngine.feedback(
                     completionPercent: previous.completionPercent,
                     moodLevel: previous.moodLevel,
-                    language: language
+                    language: language,
+                    energyLevel: personalization.energyLevel,
+                    primaryGoal: personalization.primaryGoal
                 )
             )
         } catch {
