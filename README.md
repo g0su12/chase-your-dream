@@ -24,7 +24,7 @@ Người dùng mục tiêu là những người đang cần một điểm tựa 
 - Engine phản hồi động viên dựa trên `completionPercent` và `moodLevel`.
 - Engine gợi ý ngày mai kèm safety note, tránh định vị app như tư vấn y tế/tâm lý.
 - Lưu check-in, favorite và mood journal bằng SwiftData.
-- Màn hình Progress tính current streak, average completion và preview mood.
+- Màn hình Progress theo hướng healing insights: streak, average completion, low-energy wins, mood/energy rhythm và mục tiêu đang nâng đỡ người dùng.
 - Màn hình Favorites cho quote/story, có normalized ID để tránh trùng khi đổi ngôn ngữ.
 - Màn hình Journal timeline cho các ghi chú cảm xúc.
 - Settings cho ngôn ngữ, giao diện system/dark/light, lịch nhắc hằng ngày và debug offline cache.
@@ -68,7 +68,7 @@ chase-your-dream/
 `AppModels.swift` gom các enum cấu hình app, model nội dung hằng ngày và các SwiftData model:
 
 - `PersonalGrowthGoal`, `DailyEnergyLevel`, `DailyPersonalization`: profile local dùng để cá nhân hóa prompt/action/feedback.
-- `DailyCheckinRecord`: check-in theo ngày, action đã hoàn thành, phần trăm, mood và note.
+- `DailyCheckinRecord`: check-in theo ngày, action đã hoàn thành, phần trăm, mood, energy, goals và note.
 - `FavoriteRecord`: quote/story yêu thích.
 - `MoodJournalEntry`: prompt, note và mood cho timeline nhật ký.
 

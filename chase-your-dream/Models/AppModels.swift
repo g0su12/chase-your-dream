@@ -279,6 +279,8 @@ final class DailyCheckinRecord {
     var completedActionIdsRaw: String
     var completionPercent: Int
     var moodLevel: Int
+    var energyLevelRaw: String = DailyEnergyLevel.steady.rawValue
+    var goalsRaw: String = PersonalGrowthGoal.defaultSelectionCSV
     var journalNote: String
     var updatedAt: Date
 
@@ -287,6 +289,8 @@ final class DailyCheckinRecord {
         completedActionIds: [String] = [],
         completionPercent: Int = 0,
         moodLevel: Int = 3,
+        energyLevel: DailyEnergyLevel = .steady,
+        goals: [PersonalGrowthGoal] = PersonalGrowthGoal.defaultSelection,
         journalNote: String = "",
         updatedAt: Date = .now
     ) {
@@ -294,6 +298,8 @@ final class DailyCheckinRecord {
         self.completedActionIdsRaw = completedActionIds.joined(separator: ",")
         self.completionPercent = completionPercent
         self.moodLevel = moodLevel
+        self.energyLevelRaw = energyLevel.rawValue
+        self.goalsRaw = PersonalGrowthGoal.encode(goals)
         self.journalNote = journalNote
         self.updatedAt = updatedAt
     }
@@ -308,6 +314,20 @@ final class DailyCheckinRecord {
         set {
             completedActionIdsRaw = newValue.joined(separator: ",")
         }
+    }
+
+    var energyLevel: DailyEnergyLevel {
+        get { DailyEnergyLevel(rawValue: energyLevelRaw) ?? .steady }
+        set { energyLevelRaw = newValue.rawValue }
+    }
+
+    var goals: [PersonalGrowthGoal] {
+        get { PersonalGrowthGoal.decode(csv: goalsRaw) }
+        set { goalsRaw = PersonalGrowthGoal.encode(newValue) }
+    }
+
+    var primaryGoal: PersonalGrowthGoal {
+        goals.first ?? PersonalGrowthGoal.defaultSelection[0]
     }
 }
 
