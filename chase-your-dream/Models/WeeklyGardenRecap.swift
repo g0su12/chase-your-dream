@@ -38,10 +38,18 @@ struct WeeklyGardenRecap {
         records.filter { $0.energyLevel == .low && $0.completionPercent >= 40 }.count
     }
 
+    var lowMoodCount: Int {
+        records.filter { $0.moodLevel <= 2 }.count
+    }
+
     var averageBloom: Int {
         guard !records.isEmpty else { return 0 }
         let total = records.reduce(0) { $0 + $1.completionPercent }
         return Int((Double(total) / Double(records.count)).rounded())
+    }
+
+    var averageBloomStageIndex: Int {
+        Self.bloomStageIndex(for: averageBloom)
     }
 
     var dominantMoodLevel: Int {
@@ -114,6 +122,34 @@ struct WeeklyGardenRecap {
         )
     }
 
+    static func bloomStageIndex(for completionPercent: Int) -> Int {
+        let clamped = min(max(completionPercent, 0), 100)
+        return min(max(Int((Double(clamped) / 25).rounded()), 0), 4)
+    }
+
+    static func bloomStageTitle(for completionPercent: Int, language: AppLanguage) -> String {
+        bloomStageTitle(forStage: bloomStageIndex(for: completionPercent), language: language)
+    }
+
+    static func bloomStageTitle(forStage stage: Int, language: AppLanguage) -> String {
+        switch (stage, language) {
+        case (0, .vi): return "Hạt"
+        case (1, .vi): return "Mầm"
+        case (2, .vi): return "Lá"
+        case (3, .vi): return "Nụ"
+        case (4, .vi): return "Hoa"
+        case (0, .en): return "Seed"
+        case (1, .en): return "Sprout"
+        case (2, .en): return "Leaf"
+        case (3, .en): return "Bud"
+        default: return language == .vi ? "Hoa" : "Bloom"
+        }
+    }
+
+    func averageBloomStageTitle(language: AppLanguage) -> String {
+        Self.bloomStageTitle(forStage: averageBloomStageIndex, language: language)
+    }
+
     func moodTitle(language: AppLanguage) -> String {
         switch (dominantMoodLevel, language) {
         case (1, .vi): return "mưa nhẹ"
@@ -168,14 +204,14 @@ struct WeeklyGardenRecap {
         switch language {
         case .vi:
             if let goalText {
-                return "Mood nổi bật là \(moodTitle(language: language)), mức nở trung bình \(averageBloom)%, và \(goalText.lowercased()) đang là hướng được chăm nhiều nhất."
+                return "Mood nổi bật là \(moodTitle(language: language)), mức nở trung bình là \(averageBloomStageTitle(language: language).lowercased()), và \(goalText.lowercased()) đang là hướng được chăm nhiều nhất."
             }
-            return "Mood nổi bật là \(moodTitle(language: language)) và mức nở trung bình \(averageBloom)%."
+            return "Mood nổi bật là \(moodTitle(language: language)) và mức nở trung bình là \(averageBloomStageTitle(language: language).lowercased())."
         case .en:
             if let goalText {
-                return "The main mood was \(moodTitle(language: language)), average bloom was \(averageBloom)%, and \(goalText.lowercased()) received the most care."
+                return "The main mood was \(moodTitle(language: language)), average bloom was \(averageBloomStageTitle(language: language).lowercased()), and \(goalText.lowercased()) received the most care."
             }
-            return "The main mood was \(moodTitle(language: language)) and average bloom was \(averageBloom)%."
+            return "The main mood was \(moodTitle(language: language)) and average bloom was \(averageBloomStageTitle(language: language).lowercased())."
         }
     }
 

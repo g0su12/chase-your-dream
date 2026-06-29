@@ -11,44 +11,44 @@ struct MotivationEngine {
         switch language {
         case .vi:
             if energyLevel == .low, moodLevel <= 2 {
-                return "Hôm nay năng lượng thấp mà bạn vẫn check-in được là một tín hiệu rất đáng quý. Hãy giữ nhịp bằng một bước thật nhỏ."
+                return "Có vẻ hôm nay khá nặng. Việc bạn vẫn check-in đã là một cách ở lại với chính mình. Bạn có thể dừng ở một bước rất nhỏ: uống nước, thở 3 nhịp, hoặc viết một dòng."
             }
             if completionPercent < 40 {
                 if let primaryGoal {
-                    return "Bạn đã bắt đầu rồi. Chỉ cần chốt thêm 1 việc nhỏ cho mục tiêu \(primaryGoal.title(language: language).lowercased()) là hôm nay đã có điểm tựa."
+                    return "Bạn đang ở đoạn gieo hạt. Không cần làm nhiều hơn sức mình; chỉ một việc nhỏ cho \(primaryGoal.title(language: language).lowercased()) cũng đủ tạo điểm tựa."
                 }
-                return "Bạn đã bắt đầu rồi, bây giờ hãy chốt 1 việc nhỏ để đẩy tỷ lệ lên cao hơn hôm nay."
+                return "Bạn đang ở đoạn gieo hạt. Hôm nay không cần rực rỡ; chỉ cần chọn một điều nhỏ có thể làm được."
             }
             if completionPercent < 80 {
                 if energyLevel == .high {
-                    return "Tiến độ đang tốt và năng lượng hôm nay khá sáng. Thêm một nước rút có kiểm soát là đủ, không cần quá sức."
+                    return "Năng lượng hôm nay có vẻ sáng hơn. Bạn có thể tiến thêm một chút, nhưng vẫn giữ một điểm dừng tử tế cho mình."
                 }
-                return "Tiến độ đang tốt. Thêm một nước rút nhỏ là bạn sẽ chạm mốc 100%."
+                return "Một nhịp nhỏ đang hình thành rồi. Nếu còn sức, hãy chăm thêm một mầm; nếu không, như vậy cũng đã đủ cho hôm nay."
             }
             if moodLevel <= 2 {
-                return "Bạn đã làm rất tốt. Hãy thưởng cho bản thân một khoảng nghỉ nhẹ để hồi phục."
+                return "Dù bên trong còn nặng, bạn vẫn đã chăm được một phần của ngày hôm nay. Hãy cho mình một khoảng nghỉ nhẹ sau điều đó."
             }
-            return "Tuyệt vời, bạn đang giữ được nhịp rất đẹp. Tiếp tục một hành động nhỏ vào ngày mai."
+            return "Hôm nay có một mầm khá ấm. Hãy ghi nhận nó như một dấu hiệu bạn đang biết quay về, không phải một bài kiểm tra cần hoàn hảo."
         case .en:
             if energyLevel == .low, moodLevel <= 2 {
-                return "Your energy is low and you still checked in. That counts. Keep the rhythm with one very small step."
+                return "Today seems heavy. The fact that you still checked in is a way of staying with yourself. You can stop at one very small step: water, three breaths, or one honest line."
             }
             if completionPercent < 40 {
                 if let primaryGoal {
-                    return "You have already started. One more tiny move for \(primaryGoal.title(language: language).lowercased()) can give today a real anchor."
+                    return "You are in the seed stage. No need to do more than you can hold; one tiny move for \(primaryGoal.title(language: language).lowercased()) can still become an anchor."
                 }
-                return "You have already started. Lock in one more tiny move today to lift the percentage."
+                return "You are in the seed stage. Today does not need to be bright; choose one small thing that feels possible."
             }
             if completionPercent < 80 {
                 if energyLevel == .high {
-                    return "Solid progress and bright energy today. Add one controlled sprint, without pushing past your limits."
+                    return "Your energy seems a little brighter today. You can move a bit further while keeping a kind stopping point."
                 }
-                return "Solid progress. One more focused sprint can get you much closer to 100%."
+                return "A small rhythm is forming. If you still have energy, tend one more seed; if not, this is enough for today."
             }
             if moodLevel <= 2 {
-                return "Great effort. Give yourself a gentle recovery break after this win."
+                return "Even with heaviness inside, you tended part of today. Let yourself take a gentle recovery pause after that."
             }
-            return "Excellent rhythm. Keep it alive with one simple action tomorrow."
+            return "There is a warm little bloom in today. Let it be a sign that you can return to yourself, not a test you have to perfect."
         }
     }
 }

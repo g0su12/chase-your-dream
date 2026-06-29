@@ -21,8 +21,9 @@ Người dùng mục tiêu là những người đang cần một điểm tựa 
 - Màn hình Today theo hướng healing sanctuary với gói nội dung theo ngày, chọn ngày, pull-to-refresh và cache fallback.
 - Micro actions mỗi ngày, chọn "mức nở hôm nay", mood selector animated và short journal.
 - Cá nhân hóa local theo mục tiêu cá nhân và mức năng lượng hôm nay.
-- Engine phản hồi động viên dựa trên `completionPercent` và `moodLevel`.
-- Engine gợi ý ngày mai kèm safety note, tránh định vị app như tư vấn y tế/tâm lý.
+- Engine phản hồi thấu cảm dựa trên mức nở, mood, năng lượng và mục tiêu chính.
+- Engine gợi ý ngày mai kèm safety note động, tránh định vị app như tư vấn y tế/tâm lý.
+- Bad Day Mode: khi mood hoặc năng lượng thấp, Today giảm còn một action grounding rất nhỏ và ẩn các nhắc nhở kiểu thành tích.
 - Lưu check-in, favorite và mood journal bằng SwiftData.
 - Màn hình Vườn thay cho Progress: mỗi check-in trở thành một mầm/lá chuyển động nhẹ, có giọt sương cho low-energy wins.
 - Weekly Garden Recap: tóm tắt nhịp tuần, mood nổi bật, mức nở trung bình và gợi ý nhẹ ở Today.

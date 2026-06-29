@@ -244,10 +244,19 @@ struct BloomProgressControl: View {
 
                 Spacer()
 
-                Text("\(Int(progress))%")
-                    .font(.title3.weight(.semibold))
+                Text(stageTitle(for: selectedStage))
+                    .font(.caption.weight(.bold))
                     .foregroundStyle(HealingTheme.primaryAccent(for: colorScheme))
-                    .contentTransition(.numericText())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(HealingTheme.panelBackground(for: colorScheme))
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(HealingTheme.cardStroke(for: colorScheme), lineWidth: 0.8)
+                            )
+                    )
             }
 
             HStack(alignment: .top, spacing: 7) {

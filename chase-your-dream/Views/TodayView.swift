@@ -40,6 +40,38 @@ struct TodayView: View {
         WeeklyGardenRecap.make(from: checkins, baseDate: viewModel.selectedDate)
     }
 
+    private var isBadDayMode: Bool {
+        dailyEnergyLevel == .low || viewModel.moodLevel <= 2
+    }
+
+    private var safetySupportNote: SafetySupportNote {
+        NextStepEngine.safetySupportNote(
+            language: selectedLanguage,
+            moodLevel: viewModel.moodLevel,
+            energyLevel: dailyEnergyLevel,
+            weeklyRecap: weeklyRecap
+        )
+    }
+
+    private var badDayAction: MicroAction {
+        switch selectedLanguage {
+        case .vi:
+            return MicroAction(
+                id: "bad-day-grounding-vi",
+                title: "Đặt tay lên ngực và thở 3 nhịp",
+                detail: "Không cần sửa cảm xúc ngay. Chỉ cần để cơ thể biết bạn đang ở đây.",
+                recommendedMinutes: 1
+            )
+        case .en:
+            return MicroAction(
+                id: "bad-day-grounding-en",
+                title: "Place a hand on your chest and take 3 breaths",
+                detail: "No need to fix the feeling right away. Just let your body know you are here.",
+                recommendedMinutes: 1
+            )
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -59,13 +91,15 @@ struct TodayView: View {
                                 previousSummarySection(summary: previousSummary)
                             }
 
-                            if !weeklyRecap.isEmpty {
+                            if isBadDayMode {
+                                badDayModeSection
+                            } else if !weeklyRecap.isEmpty {
                                 weeklyPulseSection(recap: weeklyRecap)
                             }
 
                             quoteSection(package: package)
 
-                            actionsSection(actions: package.microActions)
+                            actionsSection(actions: displayedActions(for: package.microActions), isBadDayMode: isBadDayMode)
 
                             checkInSection
                                 .healingCard(colorScheme: colorScheme)
@@ -246,7 +280,7 @@ struct TodayView: View {
                 Text(localized(vi: "Hôm qua bạn đã quay lại", en: "You came back yesterday"))
                     .font(.headline)
 
-                Text("\(summary.dateKey) - \(summary.completionPercent)%")
+                Text("\(summary.dateKey) - \(bloomStageLabel(for: summary.completionPercent))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -260,6 +294,45 @@ struct TodayView: View {
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(HealingTheme.panelBackground(for: colorScheme))
+        )
+    }
+
+    private var badDayModeSection: some View {
+        HStack(alignment: .top, spacing: 12) {
+            MoodSceneIcon(
+                mood: viewModel.moodLevel,
+                size: 48,
+                isActive: true,
+                isBreathing: true
+            )
+
+            VStack(alignment: .leading, spacing: 6) {
+                Label {
+                    Text(localized(vi: "Hôm nay mình giảm nhịp", en: "A softer pace today"))
+                } icon: {
+                    Image(systemName: "hand.raised")
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(HealingTheme.primaryAccent(for: colorScheme))
+
+                Text(localized(
+                    vi: "Mình sẽ chỉ giữ một bước rất nhỏ và bỏ qua các nhắc nhở kiểu thành tích. Cảm xúc nặng không cần được sửa ngay.",
+                    en: "Only one very small step is shown, and achievement-style reminders are quieted. Heavy feelings do not need to be fixed right away."
+                ))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(HealingTheme.quoteTint(for: colorScheme))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(HealingTheme.cardStroke(for: colorScheme), lineWidth: 0.8)
+                )
         )
     }
 
@@ -284,7 +357,7 @@ struct TodayView: View {
 
                     Spacer(minLength: 0)
 
-                    Text("\(recap.plantedCount)/7")
+                    Text(localized(vi: "\(recap.plantedCount) hạt", en: "\(recap.plantedCount) seed(s)"))
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
                 }
@@ -305,6 +378,14 @@ struct TodayView: View {
                         .stroke(HealingTheme.cardStroke(for: colorScheme), lineWidth: 0.8)
                 )
         )
+    }
+
+    private func displayedActions(for actions: [MicroAction]) -> [MicroAction] {
+        if isBadDayMode {
+            return [badDayAction]
+        }
+
+        return actions
     }
 
     private func quoteSection(package: DailyPackage) -> some View {
@@ -366,15 +447,21 @@ struct TodayView: View {
         }
     }
 
-    private func actionsSection(actions: [MicroAction]) -> some View {
+    private func actionsSection(actions: [MicroAction], isBadDayMode: Bool) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 sectionLabel(
-                    title: localized(vi: "Ba bước nhỏ hôm nay", en: "Three Tiny Steps"),
-                    systemImage: "figure.walk"
+                    title: isBadDayMode
+                        ? localized(vi: "Chỉ một điều nhỏ thôi", en: "Just One Small Thing")
+                        : localized(vi: "Ba bước nhỏ hôm nay", en: "Three Tiny Steps"),
+                    systemImage: isBadDayMode ? "leaf" : "figure.walk"
                 )
 
-                Text(localized(vi: "Chỉ cần chọn bước vừa sức nhất trước.", en: "Start with the step that feels most possible."))
+                Text(
+                    isBadDayMode
+                        ? localized(vi: "Hôm nay không cần cố thêm. Hoàn thành một việc rất nhỏ cũng là đủ.", en: "No need to push today. Completing one very small thing is enough.")
+                        : localized(vi: "Chỉ cần chọn bước vừa sức nhất trước.", en: "Start with the step that feels most possible.")
+                )
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -665,11 +752,31 @@ struct TodayView: View {
     }
 
     private var safetyNoteSection: some View {
-        Text(NextStepEngine.safetyNote(language: selectedLanguage))
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 4)
+        let note = safetySupportNote
+
+        return HStack(alignment: .top, spacing: 10) {
+            Image(systemName: note.systemImage)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(note.isElevated ? HealingTheme.primaryAccent(for: colorScheme) : Color.secondary)
+                .frame(width: 20)
+
+            Text(note.message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(note.isElevated ? 14 : 4)
+        .background {
+            if note.isElevated {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(HealingTheme.suggestionTint(for: colorScheme))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(HealingTheme.cardStroke(for: colorScheme), lineWidth: 0.8)
+                    )
+            }
+        }
     }
 
     private func sectionLabel(title: String, systemImage: String) -> some View {
@@ -763,6 +870,10 @@ struct TodayView: View {
         default:
             return selectedLanguage == .vi ? "Sáng lên" : "Bright"
         }
+    }
+
+    private func bloomStageLabel(for completionPercent: Int) -> String {
+        WeeklyGardenRecap.bloomStageTitle(for: completionPercent, language: selectedLanguage)
     }
 
     private func energyIcon(for energyLevel: DailyEnergyLevel) -> String {

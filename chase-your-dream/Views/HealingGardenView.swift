@@ -276,7 +276,7 @@ struct HealingGardenView: View {
                 Divider()
 
                 recapMetric(
-                    value: "\(recap.averageBloom)%",
+                    value: recap.averageBloomStageTitle(language: selectedLanguage),
                     label: localized(vi: "mức nở TB", en: "avg bloom")
                 )
 
