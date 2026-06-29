@@ -16,6 +16,10 @@ struct HealingGardenView: View {
         Array(Array(checkins.prefix(16)).reversed())
     }
 
+    private var weeklyRecap: WeeklyGardenRecap {
+        WeeklyGardenRecap.make(from: checkins)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -32,6 +36,9 @@ struct HealingGardenView: View {
                             emptyState
                                 .healingCard(colorScheme: colorScheme)
                         } else {
+                            weeklyRecapSection(recap: weeklyRecap)
+                                .healingCard(colorScheme: colorScheme, tint: HealingTheme.quoteTint(for: colorScheme))
+
                             gardenInsight
                                 .healingCard(colorScheme: colorScheme, tint: HealingTheme.suggestionTint(for: colorScheme))
 
@@ -229,6 +236,107 @@ struct HealingGardenView: View {
                 .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private func weeklyRecapSection(recap: WeeklyGardenRecap) -> some View {
+        VStack(alignment: .leading, spacing: 15) {
+            sectionLabel(
+                title: localized(vi: "Nhịp tuần này", en: "This week's rhythm"),
+                systemImage: "calendar.badge.clock"
+            )
+
+            HStack(alignment: .top, spacing: 12) {
+                MoodSceneIcon(
+                    mood: recap.dominantMoodLevel,
+                    size: 58,
+                    isActive: !recap.isEmpty,
+                    isBreathing: true
+                )
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(recap.headline(language: selectedLanguage))
+                        .font(.headline)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(recap.body(language: selectedLanguage))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            weeklyDayStrip(recap: recap)
+
+            HStack(spacing: 10) {
+                recapMetric(
+                    value: "\(recap.plantedCount)",
+                    label: localized(vi: "hạt tuần này", en: "seeds this week")
+                )
+
+                Divider()
+
+                recapMetric(
+                    value: "\(recap.averageBloom)%",
+                    label: localized(vi: "mức nở TB", en: "avg bloom")
+                )
+
+                Divider()
+
+                recapMetric(
+                    value: "\(recap.lowEnergyReturnCount)",
+                    label: localized(vi: "lần vẫn quay lại", en: "gentle returns")
+                )
+            }
+            .frame(height: 42)
+        }
+    }
+
+    private func weeklyDayStrip(recap: WeeklyGardenRecap) -> some View {
+        HStack(spacing: 6) {
+            ForEach(recap.days) { day in
+                VStack(spacing: 5) {
+                    Text(day.weekdayLabel(language: selectedLanguage))
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+
+                    ZStack {
+                        if let record = day.record {
+                            MoodSceneIcon(
+                                mood: record.moodLevel,
+                                size: 34,
+                                isActive: record.completionPercent >= 50,
+                                isBreathing: record.completionPercent >= 70
+                            )
+                        } else {
+                            Circle()
+                                .strokeBorder(Color.secondary.opacity(0.22), style: StrokeStyle(lineWidth: 1.2, dash: [3, 3]))
+                                .frame(width: 30, height: 30)
+
+                            Circle()
+                                .fill(Color.secondary.opacity(0.12))
+                                .frame(width: 6, height: 6)
+                        }
+                    }
+                    .frame(height: 36)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    private func recapMetric(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.headline.weight(.bold))
+                .foregroundStyle(HealingTheme.primaryAccent(for: colorScheme))
+
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var seedHistory: some View {

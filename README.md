@@ -25,6 +25,7 @@ Người dùng mục tiêu là những người đang cần một điểm tựa 
 - Engine gợi ý ngày mai kèm safety note, tránh định vị app như tư vấn y tế/tâm lý.
 - Lưu check-in, favorite và mood journal bằng SwiftData.
 - Màn hình Vườn thay cho Progress: mỗi check-in trở thành một mầm/lá chuyển động nhẹ, có giọt sương cho low-energy wins.
+- Weekly Garden Recap: tóm tắt nhịp tuần, mood nổi bật, mức nở trung bình và gợi ý nhẹ ở Today.
 - Màn hình Favorites cho quote/story, có normalized ID để tránh trùng khi đổi ngôn ngữ.
 - Màn hình Journal timeline cho các ghi chú cảm xúc.
 - Settings cho ngôn ngữ, giao diện system/dark/light, lịch nhắc hằng ngày và debug offline cache.
@@ -37,7 +38,8 @@ Người dùng mục tiêu là những người đang cần một điểm tựa 
 ```text
 chase-your-dream/
 |-- Models/
-|   `-- AppModels.swift
+|   |-- AppModels.swift
+|   `-- WeeklyGardenRecap.swift
 |-- Services/
 |   |-- DailyContentService.swift
 |   |-- MotivationEngine.swift
@@ -124,7 +126,7 @@ Progress dạng bảng đã được thay bằng Vườn cảm xúc. Nên bổ s
 - Các mùa/thời tiết theo mood trend.
 - Các loài cây/hoa theo mục tiêu cá nhân.
 - Animation Rive/Lottie cho mood scene nếu muốn nâng cấp visual.
-- Weekly garden recap thay cho bảng điểm.
+- Weekly recap sâu hơn: câu chuyện tuần, highlight journal và gợi ý cho tuần sau.
 
 ### 4. Hoàn Thiện Journal
 

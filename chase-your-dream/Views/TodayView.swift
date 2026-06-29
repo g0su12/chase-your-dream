@@ -9,6 +9,7 @@ struct TodayView: View {
     @AppStorage(AppStorageKeys.selectedGoalsCSV) private var selectedGoalsCSV: String = PersonalGrowthGoal.defaultSelectionCSV
     @AppStorage(AppStorageKeys.dailyEnergyLevel) private var dailyEnergyLevelRaw: String = DailyEnergyLevel.steady.rawValue
     @Query(sort: \FavoriteRecord.createdAt, order: .reverse) private var favorites: [FavoriteRecord]
+    @Query(sort: \DailyCheckinRecord.updatedAt, order: .reverse) private var checkins: [DailyCheckinRecord]
 
     @StateObject private var viewModel: TodayViewModel
 
@@ -35,6 +36,10 @@ struct TodayView: View {
         "\(DayKeyFormatter.key(for: viewModel.selectedDate))_\(selectedLanguage.rawValue)_\(personalization.cacheKey)"
     }
 
+    private var weeklyRecap: WeeklyGardenRecap {
+        WeeklyGardenRecap.make(from: checkins, baseDate: viewModel.selectedDate)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -52,6 +57,10 @@ struct TodayView: View {
 
                             if let previousSummary = viewModel.previousSummary {
                                 previousSummarySection(summary: previousSummary)
+                            }
+
+                            if !weeklyRecap.isEmpty {
+                                weeklyPulseSection(recap: weeklyRecap)
                             }
 
                             quoteSection(package: package)
@@ -251,6 +260,50 @@ struct TodayView: View {
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(HealingTheme.panelBackground(for: colorScheme))
+        )
+    }
+
+    private func weeklyPulseSection(recap: WeeklyGardenRecap) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            MoodSceneIcon(
+                mood: recap.dominantMoodLevel,
+                size: 46,
+                isActive: true,
+                isBreathing: true
+            )
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 7) {
+                    Label {
+                        Text(localized(vi: "Nhịp tuần này", en: "This week's rhythm"))
+                    } icon: {
+                        Image(systemName: "leaf")
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(HealingTheme.primaryAccent(for: colorScheme))
+
+                    Spacer(minLength: 0)
+
+                    Text("\(recap.plantedCount)/7")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                }
+
+                Text(recap.todayNudge(language: selectedLanguage))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(HealingTheme.suggestionTint(for: colorScheme))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(HealingTheme.cardStroke(for: colorScheme), lineWidth: 0.8)
+                )
         )
     }
 
