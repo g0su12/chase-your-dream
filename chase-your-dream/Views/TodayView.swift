@@ -413,8 +413,11 @@ struct TodayView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                MoodSliderSelector(moodLevel: $viewModel.moodLevel)
-                    .frame(height: 48)
+                AnimatedMoodSelector(
+                    moodLevel: $viewModel.moodLevel,
+                    language: selectedLanguage,
+                    colorScheme: colorScheme
+                )
             }
 
             completionControl
@@ -476,23 +479,11 @@ struct TodayView: View {
     }
 
     private var completionControl: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(localized(vi: "Tiến độ hôm nay", en: "Today's Progress"))
-                    .font(.subheadline.weight(.semibold))
-
-                Spacer()
-
-                Text("\(Int(viewModel.completionPercent))%")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(HealingTheme.primaryAccent(for: colorScheme))
-            }
-
-            ProgressView(value: viewModel.completionPercent, total: 100)
-                .tint(HealingTheme.primaryAccent(for: colorScheme))
-
-            Slider(value: $viewModel.completionPercent, in: 0...100, step: 1)
-        }
+        BloomProgressControl(
+            progress: $viewModel.completionPercent,
+            language: selectedLanguage,
+            colorScheme: colorScheme
+        )
     }
 
     private func reflectionJournalSection(prompt: String) -> some View {

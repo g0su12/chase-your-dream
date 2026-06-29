@@ -46,9 +46,9 @@ struct ContentView: View {
                     Label(localized(vi: "Hôm nay", en: "Today"), systemImage: "sun.max")
                 }
 
-            ProgressHistoryView()
+            HealingGardenView()
                 .tabItem {
-                    Label(localized(vi: "Tiến trình", en: "Progress"), systemImage: "chart.line.uptrend.xyaxis")
+                    Label(localized(vi: "Vườn", en: "Garden"), systemImage: "leaf")
                 }
 
             FavoritesListView()

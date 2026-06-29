@@ -2,7 +2,7 @@
 
 Chase Your Dream là một ứng dụng iOS SwiftUI giúp người dùng quay lại với những bước tiến nhỏ mỗi ngày. Thay vì tạo áp lực bằng mục tiêu lớn, app tập trung vào check-in hằng ngày, micro action, nhật ký cảm xúc và các thông điệp động viên ngắn gọn.
 
-Sản phẩm đang ở giai đoạn MVP, nhưng đã có hướng đi rõ: trở thành một không gian nhẹ nhàng để người dùng giữ nhịp sống, theo dõi tiến trình và tự tạo động lực bằng các hành động rất nhỏ.
+Sản phẩm đang ở giai đoạn MVP, nhưng đã có hướng đi rõ: trở thành một không gian nhẹ nhàng để người dùng giữ nhịp sống, nhìn lại hành trình và tự tạo động lực bằng các hành động rất nhỏ.
 
 ## Ý Tưởng Sản Phẩm
 
@@ -12,19 +12,19 @@ Người dùng mục tiêu là những người đang cần một điểm tựa 
 - Lựa chọn trạng thái cảm xúc ban đầu.
 - Một "micro win" đầu tiên rất dễ hoàn thành.
 - Gói nội dung mỗi ngày gồm trích dẫn, câu chuyện ngắn, câu hỏi tự vấn và hành động nhỏ.
-- Check-in tiến độ, tâm trạng và ghi chú ngắn.
-- Phản hồi động viên và gợi ý cho ngày mai dựa trên tiến độ/tâm trạng.
+- Check-in mức nở trong ngày, tâm trạng và ghi chú ngắn.
+- Phản hồi động viên và gợi ý cho ngày mai dựa trên mức nở/tâm trạng.
 
 ## Tính Năng Hiện Tại
 
 - Onboarding song ngữ Việt/Anh, có lưu trạng thái cảm xúc ban đầu bằng `AppStorage`.
 - Màn hình Today theo hướng healing sanctuary với gói nội dung theo ngày, chọn ngày, pull-to-refresh và cache fallback.
-- Micro actions mỗi ngày, slider tiến độ, chọn mood 1-5 và short journal.
+- Micro actions mỗi ngày, chọn "mức nở hôm nay", mood selector animated và short journal.
 - Cá nhân hóa local theo mục tiêu cá nhân và mức năng lượng hôm nay.
 - Engine phản hồi động viên dựa trên `completionPercent` và `moodLevel`.
 - Engine gợi ý ngày mai kèm safety note, tránh định vị app như tư vấn y tế/tâm lý.
 - Lưu check-in, favorite và mood journal bằng SwiftData.
-- Màn hình Progress theo hướng healing insights: streak, average completion, low-energy wins, mood/energy rhythm và mục tiêu đang nâng đỡ người dùng.
+- Màn hình Vườn thay cho Progress: mỗi check-in trở thành một mầm/lá chuyển động nhẹ, có giọt sương cho low-energy wins.
 - Màn hình Favorites cho quote/story, có normalized ID để tránh trùng khi đổi ngôn ngữ.
 - Màn hình Journal timeline cho các ghi chú cảm xúc.
 - Settings cho ngôn ngữ, giao diện system/dark/light, lịch nhắc hằng ngày và debug offline cache.
@@ -51,7 +51,7 @@ chase-your-dream/
 |   |-- FavoritesListView.swift
 |   |-- JournalTimelineView.swift
 |   |-- OnboardingView.swift
-|   |-- ProgressHistoryView.swift
+|   |-- HealingGardenView.swift
 |   |-- SettingsScreenView.swift
 |   `-- TodayView.swift
 |-- Utilities/
@@ -84,7 +84,7 @@ chase-your-dream/
 
 ### Lớp UI
 
-`ContentView` điều hướng giữa onboarding và tab app chính. App chính có 5 tab: Today, Progress, Favorites, Journal và Settings.
+`ContentView` điều hướng giữa onboarding và tab app chính. App chính có 5 tab: Today, Garden, Favorites, Journal và Settings.
 
 `TodayViewModel` là nơi điều phối chính của Today: load package, hydrate check-in cũ, save check-in/journal, cập nhật feedback và summary hôm qua.
 
@@ -117,15 +117,14 @@ Mục tiêu cá nhân và năng lượng hôm nay đã ảnh hưởng tới prom
 - Tạo micro action dựa trên mood history thay vì chỉ dựa trên lựa chọn hiện tại.
 - Giảm gợi ý khi mood thấp, tăng challenge khi người dùng duy trì tốt.
 
-### 3. Nâng Cấp Tiến Trình Và Streak
+### 3. Nâng Cấp Vườn Cảm Xúc
 
-Progress hiện tính streak và average completion. Nên bổ sung:
+Progress dạng bảng đã được thay bằng Vườn cảm xúc. Nên bổ sung:
 
-- Biểu đồ theo tuần/tháng.
-- Heatmap check-in.
-- Phân tích mood trend.
-- Badge cho các mốc nhỏ, ví dụ 3 ngày liên tiếp, 7 ngày check-in, 10 journal entries.
-- Góc nhìn "bạn đã làm được gì" thay vì chỉ chấm điểm.
+- Các mùa/thời tiết theo mood trend.
+- Các loài cây/hoa theo mục tiêu cá nhân.
+- Animation Rive/Lottie cho mood scene nếu muốn nâng cấp visual.
+- Weekly garden recap thay cho bảng điểm.
 
 ### 4. Hoàn Thiện Journal
 
@@ -180,7 +179,7 @@ Cần thêm test trước khi mở rộng mạnh:
 
 - Onboarding on-device.
 - Daily package local.
-- Check-in, favorites, journal, progress.
+- Check-in, favorites, journal, garden.
 - Reminder schedule.
 - Theme sáng/tối.
 - README và cấu trúc code rõ ràng.
@@ -189,7 +188,7 @@ Cần thêm test trước khi mở rộng mạnh:
 
 - Dùng emotion/mood/history để cá nhân hóa gợi ý.
 - Bổ sung category mục tiêu.
-- Cải thiện progress insight và journal.
+- Cải thiện Vườn cảm xúc và journal.
 
 ### Milestone 3: Cloud Và Content Pipeline
 
